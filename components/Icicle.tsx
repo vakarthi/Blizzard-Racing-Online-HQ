@@ -14,6 +14,20 @@ export const Icicle: React.FC = () => {
     useEffect(() => {
         setMessages([{ sender: 'icicle', text: icicleService.query('hello') }]);
     }, []);
+    
+    useEffect(() => {
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'blizzard_racing_icicle_knowledge') {
+                setMessages(prev => [...prev, {
+                    sender: 'icicle',
+                    text: 'My knowledge base has just been updated by the team manager.'
+                }]);
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

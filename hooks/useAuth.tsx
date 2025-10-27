@@ -32,15 +32,39 @@ const AuthProviderInternal: React.FC<{ children: ReactNode }> = ({ children }) =
     return false;
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
     sessionStorage.removeItem('blizzard_user');
-  };
+  }, []);
   
-  const updateUser = (updatedUser: User) => {
+  const updateUser = useCallback((updatedUser: User) => {
       setUser(updatedUser);
       sessionStorage.setItem('blizzard_user', JSON.stringify(updatedUser));
-  };
+  }, []);
+  
+  useEffect(() => {
+    if (!user) return;
+    
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'blizzard_racing_users') {
+        const allUsers = userService.getUsers();
+        const currentUserData = allUsers.find(u => u.email === user.email);
+
+        if (!currentUserData) {
+          // Current user was deleted
+          logout();
+        } else if (JSON.stringify(currentUserData) !== JSON.stringify(user)) {
+          // User data was updated
+          updateUser(currentUserData);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [user, logout, updateUser]);
 
   return (
     <AuthContext.Provider value={{ user, login, logout, updateUser }}>
@@ -159,6 +183,21 @@ const SiteSettingsContext = createContext<SiteSettingsContextType | undefined>(u
 const SiteSettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [logo, setLogo] = useState<string | null>(() => userService.getLogo());
     const [appName, setAppName] = useState<string>(() => userService.getAppName());
+
+    useEffect(() => {
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'blizzard_racing_app_name') {
+                setAppName(userService.getAppName());
+            } else if (e.key === 'blizzard_racing_logo') {
+                setLogo(userService.getLogo());
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+        };
+    }, []);
 
     const updateLogo = (base64: string) => {
         userService.setLogo(base64);
