@@ -14,30 +14,18 @@ const InfoIcon = () => (
 
 export const MetricCard: React.FC<MetricCardProps> = ({ title, value, tooltip }) => {
     return (
-        <div className="bg-background-secondary p-6 rounded-lg border border-border-color shadow-lg relative group transition-all duration-200 hover:shadow-2xl hover:-translate-y-1">
+        <div className="bg-background-secondary p-6 rounded-lg border border-border-color shadow-lg relative transition-all duration-200 hover:shadow-2xl hover:-translate-y-1">
             <h3 className="text-sm font-medium text-text-secondary uppercase tracking-wider">{title}</h3>
             <p className="text-4xl font-bold text-text-primary mt-2">{value}</p>
              <div className="absolute top-4 right-4">
-                <div className="has-tooltip">
+                {/* FIX: Replaced <style jsx> with Tailwind CSS classes for tooltip visibility. */}
+                <div className="relative group">
                     <InfoIcon />
-                    <div className='tooltip rounded shadow-lg p-2 bg-background-primary text-accent text-xs -mt-8 -ml-24 w-48 border border-border-color'>
+                    <div className='absolute opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200 z-10 rounded shadow-lg p-2 bg-background-primary text-accent text-xs -mt-8 -ml-24 w-48 border border-border-color'>
                         {tooltip}
                     </div>
                 </div>
             </div>
-            <style jsx>{`
-                .tooltip {
-                    position: absolute;
-                    opacity: 0;
-                    pointer-events: none;
-                    transition: all 0.2s ease-in-out;
-                    z-index: 10;
-                }
-                .has-tooltip:hover .tooltip {
-                    opacity: 1;
-                    pointer-events: auto;
-                }
-            `}</style>
         </div>
     );
 };

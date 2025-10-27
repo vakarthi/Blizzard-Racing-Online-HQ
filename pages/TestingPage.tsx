@@ -132,7 +132,8 @@ const TestingPage: React.FC<TestingPageProps> = ({ onCompare }) => {
       ) : (
         <FileUpload onFileSelect={handleFileSelect} error={error} />
       )}
-      <style jsx>{`
+      {/* FIX: Removed 'jsx' attribute from style tag to prevent React error. */}
+      <style>{`
         @keyframes indeterminate-progress {
             0% { transform: translateX(-100%); }
             100% { transform: translateX(200%); }
