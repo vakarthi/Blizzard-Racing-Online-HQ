@@ -71,19 +71,49 @@ export const chatService = {
         const messages = getStoredMessages();
         return messages[chatId] || [];
     },
-    addMessage: (chatId: string, user: {nickname: string}, text: string) => {
+    addMessage: (chatId: string, user: {nickname: string}, text: string, replyTo?: string) => {
         const messages = getStoredMessages();
         const newMessage: ChatMessage = {
             id: Date.now().toString(),
             chatId,
             user,
             text,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            ...(replyTo && { replyTo })
         };
         if (!messages[chatId]) {
             messages[chatId] = [];
         }
         messages[chatId].push(newMessage);
         localStorage.setItem(MESSAGES_KEY, JSON.stringify(messages));
+    },
+    addReaction: (chatId: string, messageId: string, emoji: string, userNickname: string): ChatMessage[] => {
+        const allMessages = getStoredMessages();
+        const chatMessages = allMessages[chatId];
+        if (!chatMessages) return [];
+        
+        const messageIndex = chatMessages.findIndex(m => m.id === messageId);
+        if (messageIndex === -1) return chatMessages;
+
+        const message = chatMessages[messageIndex];
+        if (!message.reactions) message.reactions = {};
+        if (!message.reactions[emoji]) message.reactions[emoji] = [];
+
+        const userIndex = message.reactions[emoji].indexOf(userNickname);
+
+        if (userIndex > -1) {
+            // User has reacted with this emoji, remove it
+            message.reactions[emoji].splice(userIndex, 1);
+            if (message.reactions[emoji].length === 0) {
+                delete message.reactions[emoji];
+            }
+        } else {
+            // User has not reacted, add them
+            message.reactions[emoji].push(userNickname);
+        }
+
+        allMessages[chatId][messageIndex] = message;
+        localStorage.setItem(MESSAGES_KEY, JSON.stringify(allMessages));
+        return allMessages[chatId];
     }
 };

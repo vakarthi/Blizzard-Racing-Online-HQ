@@ -61,7 +61,6 @@ export const CarModelViewer: React.FC<CarModelViewerProps> = ({ drag, downforce 
                     <circle cx="240" cy="65" r="10" className="fill-background-primary stroke-background-tertiary" strokeWidth="2" />
                 </g>
             </svg>
-            {/* FIX: Removed 'jsx' attribute from style tag to prevent React error. */}
             <style>{`
                 @keyframes flow1 {
                     from { stroke-dashoffset: 0; }

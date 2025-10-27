@@ -1,87 +1,156 @@
-const KNOWLEDGE_KEY = 'blizzard_racing_icicle_knowledge';
+import { GoogleGenAI, Type } from "@google/genai";
+import { wikiService } from './wikiService';
+import { projectService } from './projectService';
+import { financeService } from './financeService';
+import { sponsorshipService } from './sponsorshipService';
+import { rdService } from './rdService';
+import type { AnalysisResult, WikiArticle, Task } from '../types';
 
-const defaultKnowledge = `Team Name: Blizzard Racing
-Team Manager: Shriv
-Goal: Win the F1 in Schools UK National Finals.
-Core Values: Innovation, Teamwork, Perseverance.
-Sponsors: Seeking sponsors for 2024 season. Focus on local engineering firms.
-`;
+// A simple keyword extractor
+const getKeywords = (text: string): string[] => {
+    return text.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(word => word.length > 2 && word.length < 20);
+};
+
+const formatCurrency = (amount: number) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(amount);
+
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+
+const socialPostSchema = {
+  type: Type.OBJECT,
+  properties: {
+    instagram: {
+      type: Type.STRING,
+      description: "A post for Instagram, including relevant emojis and hashtags."
+    },
+    twitter: {
+      type: Type.STRING,
+      description: "A short, punchy post for Twitter/X, under 280 characters."
+    },
+    linkedin: {
+      type: Type.STRING,
+      description: "A professional post for LinkedIn, suitable for corporate sponsors and networking."
+    }
+  },
+  required: ["instagram", "twitter", "linkedin"]
+};
+
 
 export const icicleService = {
-  getKnowledge: (): string => {
-    return localStorage.getItem(KNOWLEDGE_KEY) ?? defaultKnowledge;
+  query: async (question: string, userNickname: string, analysisContext?: AnalysisResult | null): Promise<string> => {
+    await new Promise(resolve => setTimeout(resolve, 600)); // Simulate thinking
+    const lowerQ = question.toLowerCase();
+
+    // 1. Check for Analysis Context questions
+    if (analysisContext && (lowerQ.includes('this') || lowerQ.includes('result') || lowerQ.includes('summary') || lowerQ.includes('design') || lowerQ.includes('analysis'))) {
+        const { fileName, liftToDragRatio, dragCoefficient, scrutineeringReport } = analysisContext;
+        const eligibility = scrutineeringReport.isEligibleForFastestCar ? 'is eligible' : 'is not eligible';
+        let summary = `Here's a summary for **${fileName}**:\n\n`;
+        summary += `- **Performance:** L/D Ratio of **${liftToDragRatio.toFixed(3)}** and a Drag Coefficient of **${dragCoefficient.toFixed(4)}**.\n`;
+        summary += `- **Scrutineering:** Scored **${scrutineeringReport.finalScore}/${scrutineeringReport.basePoints}** and **${eligibility}**.\n`;
+        if(scrutineeringReport.infractions.length > 0) {
+            summary += `- **Issues:** Found **${scrutineeringReport.infractions.length}** rule infraction(s). The main one is: *"${scrutineeringReport.infractions[0].description}"*.`;
+        } else {
+            summary += `- **Compliance:** Passed all scrutineering checks.`;
+        }
+        return summary;
+    }
+    
+    // 2. Check for specific service queries
+    // Project Service
+    if (lowerQ.includes('my tasks') || lowerQ.includes('my tickets')) {
+        const tasks = projectService.getTasks().filter(t => t.assignee === userNickname && t.status !== 'Done');
+        if (tasks.length === 0) return `You have no active tasks assigned to you, **${userNickname}**. Great job!`;
+        let response = `Here are your active tasks, **${userNickname}**:\n\n`;
+        tasks.slice(0, 5).forEach(t => {
+            response += `- **${t.title}** (Priority: ${t.priority}, Due: ${new Date(t.dueDate).toLocaleDateString()})\n`;
+        });
+        return response;
+    }
+
+    // Finance Service
+    if (lowerQ.includes('budget') || lowerQ.includes('finances') || lowerQ.includes('money left')) {
+        const summary = financeService.getFinancialSummary();
+        const categoryMatch = lowerQ.match(/budget for ([\w\s]+)/);
+        if (categoryMatch && categoryMatch[1]) {
+            const category = Object.keys(summary.expenseByCategory).find(k => k.toLowerCase().includes(categoryMatch[1].trim().toLowerCase()));
+            if (category) {
+                 return `The total spend for the **${category}** category is **${formatCurrency(summary.expenseByCategory[category])}**.`;
+            }
+        }
+        return `The team's current financial status is:\n\n- **Total Income:** ${formatCurrency(summary.totalIncome)}\n- **Total Expenses:** ${formatCurrency(summary.totalExpenses)}\n- **Remaining Budget:** **${formatCurrency(summary.remainingBudget)}**`;
+    }
+    
+    // R&D Service
+    if (lowerQ.includes('r&d') || lowerQ.includes('experiment') || lowerQ.includes('research')) {
+        const experiments = rdService.getExperiments();
+        const keywords = getKeywords(lowerQ.replace('r&d', '').replace('experiment', '').replace('research', ''));
+        const found = experiments.find(e => keywords.some(k => e.component.toLowerCase().includes(k)));
+        if(found) {
+            return `I found an R&D log for **${found.component}**:\n\n- **Hypothesis:** ${found.hypothesis}\n- **Conclusion:** ${found.conclusion}`;
+        }
+        return `I couldn't find a specific R&D log for that component. You can view all logs on the R&D Lab page.`;
+    }
+
+    // Sponsorship Service
+    if (lowerQ.includes('sponsor') || lowerQ.includes('contact for')) {
+        const sponsors = sponsorshipService.getSponsors();
+        const keywords = getKeywords(lowerQ.replace('sponsor', '').replace('contact for', ''));
+        const found = sponsors.find(s => keywords.some(k => s.name.toLowerCase().includes(k)));
+        if(found) {
+            return `The contact for **${found.name}** is **${found.contact}**. Status: **${found.status}**.`;
+        }
+    }
+
+    // 3. Fallback to Wiki search
+    const articles = wikiService.getArticles();
+    const questionKeywords = getKeywords(lowerQ);
+    if (questionKeywords.length === 0) {
+        return "I need a bit more to go on. Please ask a more specific question.";
+    }
+
+    let bestMatch = { score: 0, article: null as WikiArticle | null };
+    articles.forEach(article => {
+        let score = 0;
+        const titleKeywords = getKeywords(article.title);
+        const contentKeywords = getKeywords(article.content);
+        questionKeywords.forEach(qword => {
+            if (titleKeywords.includes(qword)) score += 5;
+            if (contentKeywords.includes(qword)) score += 1;
+        });
+        if (score > bestMatch.score) bestMatch = { score, article };
+    });
+
+    if (bestMatch.score > 1 && bestMatch.article) {
+        const snippet = bestMatch.article.content.length > 500 ? bestMatch.article.content.substring(0, 500) + '...' : bestMatch.article.content;
+        return `From the Team Wiki article **"${bestMatch.article.title}"**, I found this:\n\n${snippet}`;
+    }
+
+    return "I couldn't find specific information about that. Try asking about your tasks, the team budget, R&D, or check the Wiki directly.";
   },
-  saveKnowledge: (knowledge: string) => {
-    localStorage.setItem(KNOWLEDGE_KEY, knowledge);
+
+  generateSocialsPost: async (topic: string, keywords: string): Promise<{ instagram: string; twitter: string; linkedin: string; } | null> => {
+    try {
+        const prompt = `You are a social media manager for "Blizzard Racing", a student racing team. 
+        Generate a social media post about the following topic: "${topic}".
+        Incorporate these key details/keywords: "${keywords}".
+        The team's tone is energetic, professional, and passionate about engineering.
+        Provide tailored versions for Instagram, Twitter/X, and LinkedIn.`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: socialPostSchema,
+                temperature: 0.7,
+            }
+        });
+
+        const jsonStr = response.text.trim();
+        return JSON.parse(jsonStr);
+    } catch (error) {
+        console.error("Error generating social media post:", error);
+        return null;
+    }
   },
-  query: (question: string): string => {
-      const knowledge = icicleService.getKnowledge().toLowerCase();
-      const q = question.toLowerCase();
-
-      // Physics knowledge
-      if (q.includes('drag')) {
-          return "Drag is the resistive force an object experiences when moving through a fluid (like air). In F1 in Schools, minimizing drag is crucial for top speed. Key factors are frontal area (streamlining) and surface finish.";
-      }
-      if (q.includes('downforce') || q.includes('lift')) {
-          return "Downforce is negative lift, an aerodynamic force that presses the car onto the track. It increases grip for better cornering. It's generated by wings and the car's body shape, often at the cost of increased drag.";
-      }
-      if (q.includes('bernoulli')) {
-          return "Bernoulli's principle states that an increase in the speed of a fluid occurs simultaneously with a decrease in pressure. This is the fundamental principle behind how wings generate lift (or downforce). Faster air over a surface creates lower pressure compared to the slower air underneath.";
-      }
-       if (q.includes('laminar flow')) {
-          return "Laminar flow is smooth, streamlined airflow with minimal turbulence. Maintaining laminar flow over the car body for as long as possible is key to reducing drag. Abrupt changes in shape can cause the flow to become turbulent, which increases drag significantly.";
-      }
-      if (q.includes("newton's first law") || q.includes('inertia')) {
-          return "Newton's First Law, the law of inertia, states that an object in motion stays in motion with the same speed and in the same direction unless acted upon by an unbalanced force. For our car, this means it will keep moving in a straight line until forces like drag, friction, or turning forces change its motion.";
-      }
-      if (q.includes("newton's second law") || q.includes('f=ma')) {
-          return "Newton's Second Law of Motion is F=ma (Force = mass × acceleration). This is fundamental to our car's performance. The thrust from the CO2 canister (Force) accelerates the car (mass). A lighter car will achieve higher acceleration for the same amount of force.";
-      }
-      if (q.includes("newton's third law")) {
-          return "Newton's Third Law states that for every action, there is an equal and opposite reaction. When the CO2 canister expels gas backward (action), the car is pushed forward (reaction). This is what propels our car down the track.";
-      }
-      if (q.includes('kinetic energy')) {
-          return "Kinetic energy is the energy of motion, calculated as KE = 1/2 * m * v^2 (mass × velocity squared). The faster our car goes, the more kinetic energy it has. This energy must be safely dissipated by the braking system at the end of the track.";
-      }
-      if (q.includes('potential energy')) {
-          return "Potential energy is stored energy. In the context of our track, it's mostly gravitational potential energy (PE = mgh). Since the track is flat, changes in potential energy are negligible, so we focus on converting the canister's chemical energy into kinetic energy as efficiently as possible.";
-      }
-      if (q.includes('momentum')) {
-          return "Momentum (p = mv) is 'mass in motion'. A heavier car will have more momentum at the same speed. Understanding momentum is important for analyzing collisions and the stability of the car on the track.";
-      }
-      if (q.includes('friction')) {
-          return "Friction is a force that opposes motion between surfaces in contact. For our car, we want to minimize friction from the wheels and axles on the track and guide line. This is why bearing quality and alignment are so important.";
-      }
-      if (q.includes('center of mass') || q.includes('centre of mass')) {
-          return "The center of mass is the point where the entire mass of the car can be considered to be concentrated. A low center of mass is crucial for stability, preventing the car from tipping over, especially during the initial high-acceleration phase.";
-      }
-      if (q.includes('work') && q.includes('energy')) {
-          return "The Work-Energy Theorem states that the work done on an object is equal to the change in its kinetic energy. The work done by the CO2 canister's thrust (minus the negative work done by drag and friction) determines the final kinetic energy, and thus the final speed, of our car.";
-      }
-      if (q.includes('power')) {
-          return "Power is the rate at which work is done (P = W/t). A more powerful CO2 canister would release its energy more quickly, resulting in higher acceleration and a faster time, assuming the car can handle the forces.";
-      }
-
-
-      if (q.includes('team name')) {
-          return "Team: Blizzard Racing. Mission: Win the F1 in Schools UK National Finals.";
-      }
-      if (q.includes('manager')) {
-          const match = knowledge.match(/team manager: (.*)/);
-          return match ? `Manager: ${match[1]}.` : "Manager's name not found in knowledge base.";
-      }
-      if (q.includes('goal') || q.includes('objective')) {
-          const match = knowledge.match(/goal: (.*)/);
-          return match ? `Primary Goal: ${match[1]}.` : "Goal not specified in knowledge base.";
-      }
-       if (q.includes('sponsor')) {
-          const match = knowledge.match(/sponsors: (.*)/);
-          return match ? `Sponsors: ${match[1]}.` : "Sponsorship info not available.";
-      }
-      if(q.includes('hello') || q.includes('hi')) {
-        return "Icicle online. How can I help?";
-      }
-
-      return "Information not found in knowledge base. A manager can update it.";
-  }
 };

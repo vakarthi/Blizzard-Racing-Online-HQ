@@ -18,10 +18,9 @@ export const MetricCard: React.FC<MetricCardProps> = ({ title, value, tooltip })
             <h3 className="text-sm font-medium text-text-secondary uppercase tracking-wider">{title}</h3>
             <p className="text-4xl font-bold text-text-primary mt-2">{value}</p>
              <div className="absolute top-4 right-4">
-                {/* FIX: Replaced <style jsx> with Tailwind CSS classes for tooltip visibility. */}
                 <div className="relative group">
                     <InfoIcon />
-                    <div className='absolute opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200 z-10 rounded shadow-lg p-2 bg-background-primary text-accent text-xs -mt-8 -ml-24 w-48 border border-border-color'>
+                    <div className="absolute bottom-full mb-2 -translate-x-1/2 left-1/2 w-48 p-2 bg-background-primary text-accent text-xs rounded shadow-lg border border-border-color opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
                         {tooltip}
                     </div>
                 </div>

@@ -14,9 +14,11 @@ const SettingsIcon: React.FC = () => (
     </svg>
 );
 
+type Page = 'hq' | 'projects' | 'sponsorship' | 'finance' | 'testing' | 'comparison' | 'toolkit' | 'wiki' | 'portfolio' | 'rd' | 'socials';
+
 interface HeaderProps {
-    onNavigate: (page: 'hq' | 'testing') => void;
-    currentPage: 'hq' | 'testing' | 'comparison';
+    onNavigate: (page: Exclude<Page, 'comparison'>) => void;
+    currentPage: Page;
     onOpenSettings: () => void;
 }
 
@@ -27,6 +29,7 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentPage, onOpenS
   const appNameParts = appName.split(' ');
   const mainAppName = appNameParts.slice(0, -1).join(' ');
   const accentAppName = appNameParts.slice(-1)[0];
+  const canAccessMarketingTools = user?.role === 'manager' || user?.role === 'marketing' || user?.role === 'engineer';
 
 
   return (
@@ -38,21 +41,73 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, currentPage, onOpenS
             <h1 className="text-xl md:text-2xl font-bold text-text-primary tracking-tight">
               {mainAppName} <span className="text-accent">{accentAppName}</span>
             </h1>
-            <nav className="hidden md:flex items-center space-x-4 ml-6">
+            <nav className="hidden md:flex items-center space-x-1 ml-4">
                 <button 
                     onClick={() => onNavigate('hq')} 
                     className={`px-3 py-2 rounded-md text-sm font-medium ${currentPage === 'hq' ? 'bg-background-tertiary text-text-primary' : 'text-text-secondary hover:bg-background-tertiary/50 hover:text-text-primary'}`}
                 >
                     HQ
                 </button>
+                 <button 
+                    onClick={() => onNavigate('projects')} 
+                    className={`px-3 py-2 rounded-md text-sm font-medium ${currentPage === 'projects' ? 'bg-background-tertiary text-text-primary' : 'text-text-secondary hover:bg-background-tertiary/50 hover:text-text-primary'}`}
+                >
+                    Projects
+                </button>
+                 <button 
+                    onClick={() => onNavigate('wiki')} 
+                    className={`px-3 py-2 rounded-md text-sm font-medium ${currentPage === 'wiki' ? 'bg-background-tertiary text-text-primary' : 'text-text-secondary hover:bg-background-tertiary/50 hover:text-text-primary'}`}
+                >
+                    Wiki
+                </button>
                 {(user?.role === 'manager' || user?.role === 'engineer') && (
+                    <>
+                         <button 
+                            onClick={() => onNavigate('rd')}
+                            className={`px-3 py-2 rounded-md text-sm font-medium ${currentPage === 'rd' ? 'bg-background-tertiary text-text-primary' : 'text-text-secondary hover:bg-background-tertiary/50 hover:text-text-primary'}`}
+                        >
+                            R&D Lab
+                        </button>
+                        <button 
+                            onClick={() => onNavigate('testing')}
+                            className={`px-3 py-2 rounded-md text-sm font-medium ${currentPage === 'testing' || currentPage === 'comparison' ? 'bg-background-tertiary text-text-primary' : 'text-text-secondary hover:bg-background-tertiary/50 hover:text-text-primary'}`}
+                        >
+                            Aero Testing
+                        </button>
+                         <button 
+                            onClick={() => onNavigate('toolkit')}
+                            className={`px-3 py-2 rounded-md text-sm font-medium ${currentPage === 'toolkit' ? 'bg-background-tertiary text-text-primary' : 'text-text-secondary hover:bg-background-tertiary/50 hover:text-text-primary'}`}
+                        >
+                            Toolkit
+                        </button>
+                    </>
+                )}
+                 <button 
+                    onClick={() => onNavigate('portfolio')} 
+                    className={`px-3 py-2 rounded-md text-sm font-medium ${currentPage === 'portfolio' ? 'bg-background-tertiary text-text-primary' : 'text-text-secondary hover:bg-background-tertiary/50 hover:text-text-primary'}`}
+                >
+                    Portfolio
+                </button>
+                <button 
+                    onClick={() => onNavigate('sponsorship')} 
+                    className={`px-3 py-2 rounded-md text-sm font-medium ${currentPage === 'sponsorship' ? 'bg-background-tertiary text-text-primary' : 'text-text-secondary hover:bg-background-tertiary/50 hover:text-text-primary'}`}
+                >
+                    Sponsorship
+                </button>
+                {canAccessMarketingTools && (
                     <button 
-                        onClick={() => onNavigate('testing')}
-                        className={`px-3 py-2 rounded-md text-sm font-medium ${currentPage === 'testing' || currentPage === 'comparison' ? 'bg-background-tertiary text-text-primary' : 'text-text-secondary hover:bg-background-tertiary/50 hover:text-text-primary'}`}
+                        onClick={() => onNavigate('socials')} 
+                        className={`px-3 py-2 rounded-md text-sm font-medium ${currentPage === 'socials' ? 'bg-background-tertiary text-text-primary' : 'text-text-secondary hover:bg-background-tertiary/50 hover:text-text-primary'}`}
                     >
-                        Aero Testing
+                        Socials
                     </button>
                 )}
+                 <button 
+                    onClick={() => onNavigate('finance')} 
+                    className={`px-3 py-2 rounded-md text-sm font-medium ${currentPage === 'finance' ? 'bg-background-tertiary text-text-primary' : 'text-text-secondary hover:bg-background-tertiary/50 hover:text-text-primary'}`}
+                >
+                    Finance
+                </button>
             </nav>
           </div>
           <div className="flex items-center space-x-4">

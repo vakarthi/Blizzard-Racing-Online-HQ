@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode, useCallback } from 'react';
-import type { User, Theme } from '../types';
+import type { User, Theme, AppSection, RolePermissions } from '../types';
 import { userService } from '../services/userService';
 
 // --- Auth Context ---
@@ -8,24 +8,28 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<boolean>;
   logout: () => void;
   updateUser: (user: User) => void;
+  can: (section: AppSection, level: 'write') => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const AuthProviderInternal: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [permissions, setPermissions] = useState<RolePermissions>({});
 
   useEffect(() => {
     const loggedInUser = sessionStorage.getItem('blizzard_user');
     if (loggedInUser) {
       setUser(JSON.parse(loggedInUser));
     }
+    setPermissions(userService.getRolePermissions());
   }, []);
 
   const login = async (email: string, pass: string): Promise<boolean> => {
     const authenticatedUser = userService.authenticate(email, pass);
     if (authenticatedUser) {
       setUser(authenticatedUser);
+      setPermissions(userService.getRolePermissions());
       sessionStorage.setItem('blizzard_user', JSON.stringify(authenticatedUser));
       return true;
     }
@@ -57,6 +61,8 @@ const AuthProviderInternal: React.FC<{ children: ReactNode }> = ({ children }) =
           // User data was updated
           updateUser(currentUserData);
         }
+      } else if (e.key === 'blizzard_racing_role_permissions') {
+          setPermissions(userService.getRolePermissions());
       }
     };
 
@@ -65,9 +71,24 @@ const AuthProviderInternal: React.FC<{ children: ReactNode }> = ({ children }) =
       window.removeEventListener('storage', handleStorageChange);
     };
   }, [user, logout, updateUser]);
+  
+  const can = (section: AppSection, level: 'write'): boolean => {
+      if (!user) return false;
+      if (user.role === 'manager') return true;
+      
+      const rolePerms = permissions[user.role];
+      if (!rolePerms) return false; // Default deny if role has no permissions object
+
+      const sectionPerm = rolePerms[section];
+      if (level === 'write') {
+          return sectionPerm === 'edit';
+      }
+      return true; // Read is implicitly allowed if the user can see the page
+  };
+
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, can }}>
       {children}
     </AuthContext.Provider>
   );
@@ -173,9 +194,11 @@ export const useTheme = (): ThemeContextType => {
 interface SiteSettingsContextType {
     logo: string | null;
     appName: string;
+    competitionDate: string | null;
     updateLogo: (base64: string) => void;
     removeLogo: () => void;
     updateAppName: (name: string) => void;
+    updateCompetitionDate: (date: string) => void;
 }
 
 const SiteSettingsContext = createContext<SiteSettingsContextType | undefined>(undefined);
@@ -183,6 +206,7 @@ const SiteSettingsContext = createContext<SiteSettingsContextType | undefined>(u
 const SiteSettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [logo, setLogo] = useState<string | null>(() => userService.getLogo());
     const [appName, setAppName] = useState<string>(() => userService.getAppName());
+    const [competitionDate, setCompetitionDate] = useState<string | null>(() => userService.getCompetitionDate());
 
     useEffect(() => {
         const handleStorageChange = (e: StorageEvent) => {
@@ -190,6 +214,8 @@ const SiteSettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 setAppName(userService.getAppName());
             } else if (e.key === 'blizzard_racing_logo') {
                 setLogo(userService.getLogo());
+            } else if (e.key === 'blizzard_racing_competition_date') {
+                setCompetitionDate(userService.getCompetitionDate());
             }
         };
 
@@ -214,8 +240,13 @@ const SiteSettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setAppName(name);
     };
 
+    const updateCompetitionDate = (date: string) => {
+        userService.setCompetitionDate(date);
+        setCompetitionDate(date);
+    };
+
     return (
-        <SiteSettingsContext.Provider value={{ logo, appName, updateLogo, removeLogo, updateAppName }}>
+        <SiteSettingsContext.Provider value={{ logo, appName, competitionDate, updateLogo, removeLogo, updateAppName, updateCompetitionDate }}>
             {children}
         </SiteSettingsContext.Provider>
     );

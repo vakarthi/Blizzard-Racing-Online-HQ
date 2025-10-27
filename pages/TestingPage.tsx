@@ -8,6 +8,7 @@ import { useAuth } from '../hooks/useAuth';
 
 interface TestingPageProps {
   onCompare: (results: AnalysisResult[]) => void;
+  setAnalysisContext: (result: AnalysisResult | null) => void;
 }
 
 const BestCarDisplay: React.FC<{ bestCar: AnalysisResult, onCompare: () => void }> = ({ bestCar, onCompare }) => (
@@ -28,7 +29,7 @@ const BestCarDisplay: React.FC<{ bestCar: AnalysisResult, onCompare: () => void 
 );
 
 
-const TestingPage: React.FC<TestingPageProps> = ({ onCompare }) => {
+const TestingPage: React.FC<TestingPageProps> = ({ onCompare, setAnalysisContext }) => {
   const { user } = useAuth();
   const [history, setHistory] = useState<AnalysisResult[]>([]);
   const [analysisState, setAnalysisState] = useState<'idle' | 'analyzing'>('idle');
@@ -58,6 +59,12 @@ const TestingPage: React.FC<TestingPageProps> = ({ onCompare }) => {
         return best;
     }, eligibleHistory[0]);
   }, [history]);
+
+  const latestResult = history.length > 0 ? history[0] : null;
+
+  useEffect(() => {
+    setAnalysisContext(latestResult);
+  }, [latestResult, setAnalysisContext]);
 
   const handleFileSelect = useCallback(async (selectedFile: File) => {
     if (!selectedFile || !user) return;
@@ -117,7 +124,6 @@ const TestingPage: React.FC<TestingPageProps> = ({ onCompare }) => {
     }
   };
   
-  const latestResult = history.length > 0 ? history[0] : null;
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
@@ -132,7 +138,6 @@ const TestingPage: React.FC<TestingPageProps> = ({ onCompare }) => {
       ) : (
         <FileUpload onFileSelect={handleFileSelect} error={error} />
       )}
-      {/* FIX: Removed 'jsx' attribute from style tag to prevent React error. */}
       <style>{`
         @keyframes indeterminate-progress {
             0% { transform: translateX(-100%); }

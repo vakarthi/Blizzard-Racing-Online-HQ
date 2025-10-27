@@ -1,18 +1,32 @@
-import type { Activity } from '../types';
+import type { ActivityLogEntry, ActivityType } from '../types';
 
-const ACTIVITY_KEY_PREFIX = 'blizzard_racing_activity_';
+const ACTIVITY_LOG_KEY = 'blizzard_racing_activity_log';
+
+const getLog = (): ActivityLogEntry[] => {
+    const log = localStorage.getItem(ACTIVITY_LOG_KEY);
+    return log ? JSON.parse(log) : [];
+};
 
 export const activityService = {
-    setLastActivity: (email: string, activity: Omit<Activity, 'timestamp'>) => {
-        const activityWithTimestamp: Activity = {
-            ...activity,
-            timestamp: new Date().toISOString(),
+    logActivity: (userNickname: string, type: ActivityType, details: string) => {
+        const log = getLog();
+        const newEntry: ActivityLogEntry = {
+            userNickname,
+            type,
+            details,
+            timestamp: new Date().toISOString()
         };
-        localStorage.setItem(`${ACTIVITY_KEY_PREFIX}${email}`, JSON.stringify(activityWithTimestamp));
+        // Keep the log from getting excessively large
+        const newLog = [newEntry, ...log].slice(0, 500);
+        localStorage.setItem(ACTIVITY_LOG_KEY, JSON.stringify(newLog));
     },
 
-    getLastActivity: (email: string): Activity | null => {
-        const activity = localStorage.getItem(`${ACTIVITY_KEY_PREFIX}${email}`);
-        return activity ? JSON.parse(activity) : null;
+    getActivities: (): ActivityLogEntry[] => {
+        return getLog();
+    },
+
+    getLatestActivityForUser: (nickname: string): ActivityLogEntry | null => {
+        const log = getLog();
+        return log.find(entry => entry.userNickname === nickname) || null;
     }
 };

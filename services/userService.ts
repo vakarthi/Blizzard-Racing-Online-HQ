@@ -1,14 +1,14 @@
-import type { User, Theme, ThemeColors } from '../types';
+import type { User, Theme, ThemeColors, RolePermissions } from '../types';
 
 const USERS_KEY = 'blizzard_racing_users';
 const PASSWORDS_KEY = 'blizzard_racing_passwords';
 const CUSTOM_THEMES_KEY_PREFIX = 'blizzard_racing_custom_themes_';
 const LOGO_KEY = 'blizzard_racing_logo';
 const APP_NAME_KEY = 'blizzard_racing_app_name';
+const COMPETITION_DATE_KEY = 'blizzard_racing_competition_date';
+const ROLE_PERMISSIONS_KEY = 'blizzard_racing_role_permissions';
 
 // --- Default Themes ---
-// FIX: Using Partial<ThemeColors> makes properties optional, causing a type mismatch where all properties are required.
-// Pick<> is used to select a subset of properties while ensuring they remain required.
 const defaultColors: Pick<ThemeColors, '--color-text-on-primary'> = {
     '--color-text-on-primary': 'rgb(255 255 255)',
 };
@@ -80,9 +80,9 @@ const initializeDefaultUsers = () => {
             { email: 'shrivatsakarth.kart@saintolaves.net', name: 'Shrivatsa Karth', nickname: 'Shriv', role: 'manager', activeTheme: 'Blizzard Racing' },
             { email: 'anish.ghosh@saintolaves.net', name: 'Anish Ghosh', nickname: 'Anish', role: 'engineer', activeTheme: 'Blizzard Racing' },
             { email: 'hadinabeel.siddiqui@saintolaves.net', name: 'Hadinabeel Siddiqui', nickname: 'Hadi', role: 'engineer', activeTheme: 'Blizzard Racing' },
-            { email: 'pranavram.alluri@saintolaves.net', name: 'Pranavram Alluri', nickname: 'Parvan', role: 'engineer', activeTheme: 'Blizzard Racing' },
-            { email: 'aarav.gupta-cure@saintolaves.net', name: 'Aarav Gupta-Cure', nickname: 'Aarav', role: 'member', activeTheme: 'Blizzard Racing' },
-            { email: 'raiyan.haider@saintolaves.net', name: 'Raiyan Haider', nickname: 'Raiyan', role: 'member', activeTheme: 'Blizzard Racing' },
+            { email: 'pranavram.alluri@saintolaves.net', name: 'Pranavram Alluri', nickname: 'Pranav', role: 'engineer', activeTheme: 'Blizzard Racing' },
+            { email: 'aarav.gupta-cure@saintolaves.net', name: 'Aarav Gupta-Cure', nickname: 'Aarav', role: 'designer', activeTheme: 'Blizzard Racing' },
+            { email: 'raiyan.haider@saintolaves.net', name: 'Raiyan Haider', nickname: 'Raiyan', role: 'marketing', activeTheme: 'Blizzard Racing' },
         ];
         const defaultPasswords = {
             'shrivatsakarth.kart@saintolaves.net': '__KONAMI_SH__',
@@ -97,7 +97,22 @@ const initializeDefaultUsers = () => {
     }
 };
 
+const initializeDefaultPermissions = () => {
+    const permissions = localStorage.getItem(ROLE_PERMISSIONS_KEY);
+    if (!permissions) {
+        const defaultPermissions: RolePermissions = {
+            'engineer': { 'projects': 'edit', 'sponsorship': 'read-only', 'finance': 'edit', 'wiki': 'edit', 'rd': 'edit', 'socials': 'edit' },
+            'designer': { 'projects': 'edit', 'sponsorship': 'read-only', 'finance': 'read-only', 'wiki': 'edit', 'rd': 'read-only', 'socials': 'read-only' },
+            'marketing': { 'projects': 'edit', 'sponsorship': 'edit', 'finance': 'edit', 'wiki': 'edit', 'rd': 'read-only', 'socials': 'edit' },
+            'member': { 'projects': 'edit', 'sponsorship': 'read-only', 'finance': 'read-only', 'wiki': 'read-only', 'rd': 'read-only', 'socials': 'read-only' }
+        };
+        localStorage.setItem(ROLE_PERMISSIONS_KEY, JSON.stringify(defaultPermissions));
+    }
+};
+
+
 initializeDefaultUsers();
+initializeDefaultPermissions();
 
 export const userService = {
     isManager: (email: string): boolean => {
@@ -205,6 +220,18 @@ export const userService = {
         return { success: true, message: 'User removed.' };
     },
 
+    // --- Permissions Management ---
+    getRolePermissions: (): RolePermissions => {
+        const permissions = localStorage.getItem(ROLE_PERMISSIONS_KEY);
+        return permissions ? JSON.parse(permissions) : {};
+    },
+
+    updateRolePermissions: (permissions: RolePermissions) => {
+        localStorage.setItem(ROLE_PERMISSIONS_KEY, JSON.stringify(permissions));
+        // Dispatch a storage event so other tabs pick up the change
+        window.dispatchEvent(new Event('storage'));
+    },
+
     // --- Theme Management ---
     getThemes: (email?: string): Theme[] => {
         let customThemes: Theme[] = [];
@@ -261,5 +288,15 @@ export const userService = {
     },
     setAppName: (name: string) => {
         localStorage.setItem(APP_NAME_KEY, name);
+    },
+    getCompetitionDate: (): string | null => {
+        return localStorage.getItem(COMPETITION_DATE_KEY);
+    },
+    setCompetitionDate: (date: string) => {
+        if (date) {
+            localStorage.setItem(COMPETITION_DATE_KEY, date);
+        } else {
+            localStorage.removeItem(COMPETITION_DATE_KEY);
+        }
     }
 };
