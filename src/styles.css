@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base theme variables (Blizzard Racing) */
+:root {
+  --color-primary: 59 130 246; /* blue-500 */
+  --color-primary-hover: 37 99 235; /* blue-600 */
+  --color-accent: 96 165 250; /* blue-400 */
+  
+  --color-background-primary: 17 24 39; /* gray-900 */
+  --color-background-secondary: 31 41 55; /* gray-800 */
+  --color-background-tertiary: 55 65 81; /* gray-700 */
+  
+  --color-text-primary: 229 231 235; /* gray-200 */
+  --color-text-secondary: 156 163 175; /* gray-400 */
+  --color-text-on-primary: 255 255 255;
+  
+  --color-border-color: 55 65 81; /* gray-700 */
+
+  --color-success: 74 222 128; /* green-400 */
+  --color-warning: 250 204 21; /* yellow-400 */
+  --color-danger: 248 113 113; /* red-400 */
+  --color-danger-hover: 220 38 38; /* red-600 */
+}
+
+
+/* For modal transitions */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-backdrop {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.modal-content {
+  animation: slideInUp 0.3s ease-out forwards;
+}
+
+@keyframes slideInBottom {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-slide-in-bottom {
+  animation: slideInBottom 0.4s ease-out forwards;
+}
+
+/* ASMR UI Animations */
+@keyframes gentle-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
+}
+.animate-gentle-pulse {
+  animation: gentle-pulse 2.5s infinite ease-in-out;
+}
+
+@keyframes breathing {
+  0%, 100% {
+    box-shadow: 0 0 5px 0px rgb(var(--color-accent) / 0);
+  }
+  50% {
+    box-shadow: 0 0 20px 5px rgb(var(--color-accent) / 0.4);
+  }
+}
+.animate-breathing {
+  animation: breathing 3s infinite ease-in-out;
+}
+
+
+/* For printing results */
+@media print {
+  body {
+    background-color: white !important;
+    color: black !important;
+  }
+
+  .no-print, header, footer, .print-hide {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  .print-container {
+    box-shadow: none !important;
+    border: none !important;
+    background-color: white !important;
+  }
+
+  .print-text-color {
+    color: black !important;
+  }
+   .print-bg-color {
+    background-color: white !important;
+  }
+}

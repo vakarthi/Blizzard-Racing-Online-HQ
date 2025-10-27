@@ -5,35 +5,6 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Blizzard Racing HQ</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="./styles.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              'primary': 'rgb(var(--color-primary) / <alpha-value>)',
-              'primary-hover': 'rgb(var(--color-primary-hover) / <alpha-value>)',
-              'accent': 'rgb(var(--color-accent) / <alpha-value>)',
-              'background-primary': 'rgb(var(--color-background-primary) / <alpha-value>)',
-              'background-secondary': 'rgb(var(--color-background-secondary) / <alpha-value>)',
-              'background-tertiary': 'rgb(var(--color-background-tertiary) / <alpha-value>)',
-              'text-primary': 'rgb(var(--color-text-primary) / <alpha-value>)',
-              'text-secondary': 'rgb(var(--color-text-secondary) / <alpha-value>)',
-              'text-on-primary': 'rgb(var(--color-text-on-primary) / <alpha-value>)',
-              'border-color': 'rgb(var(--color-border-color) / <alpha-value>)',
-              'success': 'rgb(var(--color-success) / <alpha-value>)',
-              'warning': 'rgb(var(--color-warning) / <alpha-value>)',
-              'danger': 'rgb(var(--color-danger) / <alpha-value>)',
-              'danger-hover': 'rgb(var(--color-danger-hover) / <alpha-value>)',
-            }
-          }
-        }
-      }
-    </script>
   <script type="importmap">
 {
   "imports": {
@@ -41,13 +12,17 @@
     "react": "https://aistudiocdn.com/react@^19.2.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "recharts": "https://aistudiocdn.com/recharts@^3.3.0",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.27.0"
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.27.0",
+    "vite": "https://aistudiocdn.com/vite@^7.1.12",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.0",
+    "jspdf": "https://aistudiocdn.com/jspdf@^3.0.3",
+    "html2canvas": "https://aistudiocdn.com/html2canvas@^1.4.1"
   }
 }
 </script>
 </head>
   <body class="bg-background-primary">
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <script type="module" src="/src/index.tsx"></script>
   </body>
 </html>
